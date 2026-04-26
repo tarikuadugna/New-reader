@@ -1,0 +1,3 @@
+PRODUCT_NAME = Daily News
+PRODUCT_BUNDLE_IDENTIFIER = com.example.newsApi
+PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
