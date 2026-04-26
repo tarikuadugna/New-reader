@@ -32,6 +32,17 @@ flutter run
 
 The `.env` file is ignored by git, so the API key is not uploaded to GitHub.
 
+## How To Build With GitHub Actions
+
+1. Open the repository on GitHub.
+2. Go to the Actions tab.
+3. Select the Flutter CI workflow.
+4. Click Run workflow and choose the main branch.
+5. Wait for the workflow to finish. It runs dependency install, analysis, tests, and a release APK build.
+6. Open the completed workflow run and download the `news-reader-release-apk` artifact.
+
+The workflow can also run automatically when code is pushed to `main`. To use a real NewsAPI key in GitHub Actions, add a repository secret named `NEWS_API_KEY` in Settings > Secrets and variables > Actions.
+
 ## API Endpoints
 
 - `GET https://newsapi.org/v2/top-headlines?country={cc}&apiKey={key}&pageSize=20`
