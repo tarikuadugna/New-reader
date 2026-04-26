@@ -43,6 +43,21 @@ The `.env` file is ignored by git, so the API key is not uploaded to GitHub.
 
 The workflow can also run automatically when code is pushed to `main`. To use a real NewsAPI key in GitHub Actions, add a repository secret named `NEWS_API_KEY` in Settings > Secrets and variables > Actions.
 
+## How To Create A GitHub Release APK
+
+1. Add `NEWS_API_KEY` as a GitHub Actions repository secret if the APK should load real news.
+2. Create and push a version tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+3. Open the Releases page on GitHub.
+4. Download the APK attached to the new release.
+
+The workflow can compile without `NEWS_API_KEY`, but the installed APK needs a valid key to fetch news from NewsAPI.
+
 ## API Endpoints
 
 - `GET https://newsapi.org/v2/top-headlines?country={cc}&apiKey={key}&pageSize=20`
