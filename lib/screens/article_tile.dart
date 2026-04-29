@@ -5,8 +5,15 @@ import 'detail_screen.dart';
 
 class ArticleTile extends StatelessWidget {
   final Article article;
+  final String? searchQuery;
+  final String? countryName;
 
-  const ArticleTile({super.key, required this.article});
+  const ArticleTile({
+    super.key,
+    required this.article,
+    this.searchQuery,
+    this.countryName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,24 +41,24 @@ class ArticleTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      article.title,
+                    _QueryText(
+                      text: article.title,
+                      query: searchQuery,
                       maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      article.description ?? 'No description available.',
+                    _QueryText(
+                      text: _visibleText,
+                      query: searchQuery,
                       maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${article.sourceName} · ${_formatDate(article.publishedAt)}',
+                      _metadataText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -69,6 +76,63 @@ class ArticleTile extends StatelessWidget {
     );
   }
 
+  String get _visibleText {
+    final query = searchQuery?.trim();
+    final texts = <String>[
+      if (article.description != null) article.description!,
+      if (article.content != null) article.content!,
+    ];
+
+    if (query == null || query.isEmpty) {
+      return texts.firstWhere(
+        (String text) => text.trim().isNotEmpty,
+        orElse: () => 'No description available.',
+      );
+    }
+
+    for (final text in texts) {
+      final excerpt = _excerptAroundQuery(text, query);
+      if (excerpt != null) {
+        return excerpt;
+      }
+    }
+
+    return texts.firstWhere(
+      (String text) => text.trim().isNotEmpty,
+      orElse: () => 'No description available.',
+    );
+  }
+
+  String get _metadataText {
+    final parts = <String>[
+      if (countryName != null && countryName!.trim().isNotEmpty)
+        countryName!.trim(),
+      article.sourceName,
+      _formatDate(article.publishedAt),
+    ];
+    return parts.join(' · ');
+  }
+
+  String? _excerptAroundQuery(String text, String query) {
+    final cleanText = text.trim();
+    if (cleanText.isEmpty) {
+      return null;
+    }
+
+    final lowerText = cleanText.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final index = lowerText.indexOf(lowerQuery);
+    if (index == -1) {
+      return null;
+    }
+
+    final start = (index - 48).clamp(0, cleanText.length);
+    final end = (index + query.length + 96).clamp(0, cleanText.length);
+    final prefix = start > 0 ? '... ' : '';
+    final suffix = end < cleanText.length ? ' ...' : '';
+    return '$prefix${cleanText.substring(start, end).trim()}$suffix';
+  }
+
   String _formatDate(DateTime? value) {
     if (value == null) {
       return 'Date unavailable';
@@ -79,6 +143,69 @@ class ArticleTile extends StatelessWidget {
     final month = local.month.toString().padLeft(2, '0');
     final day = local.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+}
+
+class _QueryText extends StatelessWidget {
+  final String text;
+  final String? query;
+  final int maxLines;
+  final TextStyle? style;
+
+  const _QueryText({
+    required this.text,
+    required this.query,
+    required this.maxLines,
+    required this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmedQuery = query?.trim();
+    if (trimmedQuery == null || trimmedQuery.isEmpty) {
+      return Text(
+        text,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+      );
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerQuery = trimmedQuery.toLowerCase();
+    final spans = <TextSpan>[];
+    var index = 0;
+
+    while (index < text.length) {
+      final matchIndex = lowerText.indexOf(lowerQuery, index);
+      if (matchIndex == -1) {
+        spans.add(TextSpan(text: text.substring(index)));
+        break;
+      }
+
+      if (matchIndex > index) {
+        spans.add(TextSpan(text: text.substring(index, matchIndex)));
+      }
+
+      final matchEnd = matchIndex + trimmedQuery.length;
+      spans.add(
+        TextSpan(
+          text: text.substring(matchIndex, matchEnd),
+          style: TextStyle(
+            backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+            color: Theme.of(context).colorScheme.onSecondaryContainer,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+      index = matchEnd;
+    }
+
+    return Text.rich(
+      TextSpan(style: style, children: spans),
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/article.dart';
+import '../models/news_country.dart';
 import '../services/api_error_message.dart';
 import '../services/news_api_service.dart';
 import 'article_tile.dart';
@@ -16,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final NewsApiService _service = NewsApiService();
-  NewsCountry _selectedCountry = _countries.first;
+  NewsCountry _selectedCountry = newsCountries.first;
   late Future<List<Article>> _headlinesFuture;
 
   @override
@@ -113,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 labelText: 'Country',
                 border: OutlineInputBorder(),
               ),
-              items: _countries
+              items: newsCountries
                   .map((NewsCountry country) {
                     return DropdownMenuItem<NewsCountry>(
                       value: country,
@@ -205,8 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('About Daily News'),
           content: Text(
             'Daily News is a Flutter news reader app for top headlines and article search.\n\n'
-            'Developed by AAU students group project.\n\n'
-            'Name: Tariku\n'
+            'Individual project by Tariku.\n\n'
             'Date: Apr 26, 2026',
           ),
           actions: <Widget>[
@@ -224,36 +224,6 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 enum _HomeMenuAction { about, exit }
-
-class NewsCountry {
-  final String name;
-  final String code;
-  final bool useTopHeadlines;
-
-  const NewsCountry({
-    required this.name,
-    required this.code,
-    this.useTopHeadlines = true,
-  });
-}
-
-const List<NewsCountry> _countries = <NewsCountry>[
-  NewsCountry(name: 'United States', code: 'us'),
-  NewsCountry(name: 'United Kingdom', code: 'gb'),
-  NewsCountry(name: 'Canada', code: 'ca'),
-  NewsCountry(name: 'Australia', code: 'au'),
-  NewsCountry(name: 'India', code: 'in'),
-  NewsCountry(name: 'Ethiopia', code: 'et', useTopHeadlines: false),
-  NewsCountry(name: 'Germany', code: 'de'),
-  NewsCountry(name: 'France', code: 'fr'),
-  NewsCountry(name: 'Japan', code: 'jp'),
-  NewsCountry(name: 'South Africa', code: 'za'),
-  NewsCountry(name: 'Nigeria', code: 'ng'),
-  NewsCountry(name: 'Egypt', code: 'eg'),
-  NewsCountry(name: 'United Arab Emirates', code: 'ae'),
-  NewsCountry(name: 'Saudi Arabia', code: 'sa'),
-  NewsCountry(name: 'Brazil', code: 'br'),
-];
 
 class _StateMessage extends StatelessWidget {
   final IconData icon;

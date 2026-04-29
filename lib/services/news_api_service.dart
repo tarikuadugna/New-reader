@@ -52,6 +52,33 @@ class NewsApiService {
     return _parseArticles(response.body);
   }
 
+  Future<List<Article>> searchTopHeadlines({
+    required String query,
+    required String countryCode,
+    int pageSize = 20,
+  }) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) {
+      return <Article>[];
+    }
+
+    final apiKey = _apiKey;
+    _ensureApiKey(apiKey);
+
+    final uri = Uri.https(_baseUrl, '/v2/top-headlines', <String, String>{
+      'q': trimmedQuery,
+      'country': countryCode,
+      'apiKey': apiKey,
+      'pageSize': pageSize.toString(),
+    });
+
+    final response = await _client
+        .get(uri, headers: _headers)
+        .timeout(_timeout);
+    _checkResponse(response);
+    return _parseArticles(response.body);
+  }
+
   Future<List<Article>> searchArticles(
     String query, {
     int pageSize = 20,

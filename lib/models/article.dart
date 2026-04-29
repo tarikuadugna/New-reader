@@ -3,6 +3,7 @@ class Article {
   final String? description;
   final String url;
   final String? urlToImage;
+  final String? content;
   final String sourceName;
   final String? author;
   final DateTime? publishedAt;
@@ -12,6 +13,7 @@ class Article {
     required this.description,
     required this.url,
     required this.urlToImage,
+    required this.content,
     required this.sourceName,
     required this.author,
     required this.publishedAt,
@@ -27,6 +29,7 @@ class Article {
       description: json['description'] as String?,
       url: json['url'] as String? ?? '',
       urlToImage: json['urlToImage'] as String?,
+      content: json['content'] as String?,
       sourceName: source['name'] as String? ?? 'Unknown source',
       author: json['author'] as String?,
       publishedAt: _parseDate(publishedAtText),
@@ -39,6 +42,7 @@ class Article {
       'description': description,
       'url': url,
       'urlToImage': urlToImage,
+      'content': content,
       'sourceName': sourceName,
       'author': author,
       'publishedAt': publishedAt?.toIso8601String(),
@@ -50,6 +54,7 @@ class Article {
     String? description,
     String? url,
     String? urlToImage,
+    String? content,
     String? sourceName,
     String? author,
     DateTime? publishedAt,
@@ -59,6 +64,7 @@ class Article {
       description: description ?? this.description,
       url: url ?? this.url,
       urlToImage: urlToImage ?? this.urlToImage,
+      content: content ?? this.content,
       sourceName: sourceName ?? this.sourceName,
       author: author ?? this.author,
       publishedAt: publishedAt ?? this.publishedAt,

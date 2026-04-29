@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/article.dart';
+import '../models/news_country.dart';
 import '../services/api_error_message.dart';
 import '../services/news_api_service.dart';
 import 'article_tile.dart';
@@ -18,6 +19,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final NewsApiService _service = NewsApiService();
   final TextEditingController _controller = TextEditingController();
   Timer? _debounce;
+  NewsCountry _selectedCountry = newsCountries.first;
   List<Article> _articles = <Article>[];
   Object? _error;
   bool _isLoading = false;
@@ -63,7 +65,14 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final results = await _service.searchArticles(query);
+      final results = _selectedCountry.useTopHeadlines
+          ? await _service.searchTopHeadlines(
+              query: query,
+              countryCode: _selectedCountry.code,
+            )
+          : await _service.searchArticles(
+              '${query.trim()} ${_selectedCountry.name}',
+            );
       if (!mounted || requestId != _requestId) {
         return;
       }
@@ -93,6 +102,24 @@ class _SearchScreenState extends State<SearchScreen> {
     _search(query);
   }
 
+  void _onCountryChanged(NewsCountry? country) {
+    if (country == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedCountry = country;
+      _articles = <Article>[];
+      _error = null;
+    });
+
+    final query = _controller.text.trim();
+    if (query.isNotEmpty) {
+      _debounce?.cancel();
+      _search(query);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,21 +128,57 @@ class _SearchScreenState extends State<SearchScreen> {
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _controller,
-              textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                labelText: 'Keyword',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: _onQueryChanged,
-              onSubmitted: (String value) {
-                _debounce?.cancel();
-                _search(value.trim());
-              },
+            child: Column(
+              children: <Widget>[
+                TextField(
+                  controller: _controller,
+                  textInputAction: TextInputAction.search,
+                  decoration: const InputDecoration(
+                    labelText: 'Keyword',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: _onQueryChanged,
+                  onSubmitted: (String value) {
+                    _debounce?.cancel();
+                    _search(value.trim());
+                  },
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<NewsCountry>(
+                  initialValue: _selectedCountry,
+                  decoration: const InputDecoration(
+                    labelText: 'Country',
+                    prefixIcon: Icon(Icons.public),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: newsCountries
+                      .map((NewsCountry country) {
+                        return DropdownMenuItem<NewsCountry>(
+                          value: country,
+                          child: Text(country.name),
+                        );
+                      })
+                      .toList(growable: false),
+                  onChanged: _onCountryChanged,
+                ),
+              ],
             ),
           ),
+          if (_controller.text.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Headlines for "${_controller.text.trim()}" in ${_selectedCountry.name}',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
           Expanded(child: _buildBody()),
         ],
       ),
@@ -159,7 +222,11 @@ class _SearchScreenState extends State<SearchScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       itemCount: _articles.length,
       itemBuilder: (BuildContext context, int index) {
-        return ArticleTile(article: _articles[index]);
+        return ArticleTile(
+          article: _articles[index],
+          searchQuery: _controller.text.trim(),
+          countryName: _selectedCountry.name,
+        );
       },
     );
   }
