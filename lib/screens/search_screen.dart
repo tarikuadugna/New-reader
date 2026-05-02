@@ -20,6 +20,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   Timer? _debounce;
   NewsCountry _selectedCountry = newsCountries.first;
+  bool _filterByCountry = false;
   List<Article> _articles = <Article>[];
   Object? _error;
   bool _isLoading = false;
@@ -65,14 +66,10 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final results = _selectedCountry.useTopHeadlines
-          ? await _service.searchTopHeadlines(
-              query: query,
-              countryCode: _selectedCountry.code,
-            )
-          : await _service.searchArticles(
-              '${query.trim()} ${_selectedCountry.name}',
-            );
+      final results = await _service.searchArticles(
+        query,
+        countryName: _filterByCountry ? _selectedCountry.name : null,
+      );
       if (!mounted || requestId != _requestId) {
         return;
       }
@@ -102,67 +99,36 @@ class _SearchScreenState extends State<SearchScreen> {
     _search(query);
   }
 
-  void _onCountryChanged(NewsCountry? country) {
-    if (country == null) {
-      return;
-    }
-
-    setState(() {
-      _selectedCountry = country;
-      _articles = <Article>[];
-      _error = null;
-    });
-
-    final query = _controller.text.trim();
-    if (query.isNotEmpty) {
-      _debounce?.cancel();
-      _search(query);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Search News')),
+      appBar: AppBar(
+        title: const Text('Search News'),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Search settings',
+            icon: const Icon(Icons.settings),
+            onPressed: _showSearchSettings,
+          ),
+        ],
+      ),
       body: Column(
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Column(
-              children: <Widget>[
-                TextField(
-                  controller: _controller,
-                  textInputAction: TextInputAction.search,
-                  decoration: const InputDecoration(
-                    labelText: 'Keyword',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: _onQueryChanged,
-                  onSubmitted: (String value) {
-                    _debounce?.cancel();
-                    _search(value.trim());
-                  },
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<NewsCountry>(
-                  initialValue: _selectedCountry,
-                  decoration: const InputDecoration(
-                    labelText: 'Country',
-                    prefixIcon: Icon(Icons.public),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: newsCountries
-                      .map((NewsCountry country) {
-                        return DropdownMenuItem<NewsCountry>(
-                          value: country,
-                          child: Text(country.name),
-                        );
-                      })
-                      .toList(growable: false),
-                  onChanged: _onCountryChanged,
-                ),
-              ],
+            child: TextField(
+              controller: _controller,
+              textInputAction: TextInputAction.search,
+              decoration: const InputDecoration(
+                labelText: 'Search topic',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: _onQueryChanged,
+              onSubmitted: (String value) {
+                _debounce?.cancel();
+                _search(value.trim());
+              },
             ),
           ),
           if (_controller.text.trim().isNotEmpty)
@@ -171,7 +137,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Headlines for "${_controller.text.trim()}" in ${_selectedCountry.name}',
+                  _resultLabel,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
@@ -225,7 +191,100 @@ class _SearchScreenState extends State<SearchScreen> {
         return ArticleTile(
           article: _articles[index],
           searchQuery: _controller.text.trim(),
-          countryName: _selectedCountry.name,
+          countryName: _filterByCountry ? _selectedCountry.name : null,
+        );
+      },
+    );
+  }
+
+  String get _resultLabel {
+    final query = _controller.text.trim();
+    if (_filterByCountry) {
+      return 'Articles for "$query" in ${_selectedCountry.name}';
+    }
+    return 'Articles for "$query"';
+  }
+
+  Future<void> _showSearchSettings() async {
+    var filterByCountry = _filterByCountry;
+    var selectedCountry = _selectedCountry;
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: const Text('Search Settings'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Filter by country'),
+                    value: filterByCountry,
+                    onChanged: (bool value) {
+                      setDialogState(() {
+                        filterByCountry = value;
+                      });
+                    },
+                  ),
+                  if (filterByCountry) ...<Widget>[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<NewsCountry>(
+                      initialValue: selectedCountry,
+                      decoration: const InputDecoration(
+                        labelText: 'Country',
+                        prefixIcon: Icon(Icons.public),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: newsCountries
+                          .map((NewsCountry country) {
+                            return DropdownMenuItem<NewsCountry>(
+                              value: country,
+                              child: Text(country.name),
+                            );
+                          })
+                          .toList(growable: false),
+                      onChanged: (NewsCountry? country) {
+                        if (country == null) {
+                          return;
+                        }
+                        setDialogState(() {
+                          selectedCountry = country;
+                        });
+                      },
+                    ),
+                  ],
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    setState(() {
+                      _filterByCountry = filterByCountry;
+                      _selectedCountry = selectedCountry;
+                    });
+
+                    Navigator.of(context).pop();
+
+                    final query = _controller.text.trim();
+                    if (query.isNotEmpty) {
+                      _debounce?.cancel();
+                      _search(query);
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

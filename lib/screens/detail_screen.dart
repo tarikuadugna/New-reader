@@ -10,67 +10,119 @@ class ArticleDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final description = _cleanText(article.description);
+    final content = _cleanText(article.content);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Article Detail')),
+      appBar: AppBar(title: const Text('Article')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _HeroImage(imageUrl: article.urlToImage),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    article.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        article.title,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                            ),
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: <Widget>[
+                          _InfoChip(
+                            icon: Icons.public,
+                            text: article.sourceName,
+                          ),
+                          _InfoChip(
+                            icon: Icons.event,
+                            text: _formatDateTime(article.publishedAt),
+                          ),
+                        ],
+                      ),
+                      if (article.author != null &&
+                          article.author!.trim().isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Icon(
+                              Icons.person_outline,
+                              size: 20,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(article.author!.trim())),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 22),
+                      Divider(color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 18),
+                      Text(
+                        description ?? 'No description available.',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          height: 1.55,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (content != null &&
+                          content != description) ...<Widget>[
+                        const SizedBox(height: 18),
+                        Text(
+                          content,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.55),
+                        ),
+                      ],
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: article.url.isEmpty
+                              ? null
+                              : () {
+                                  _openArticle(context);
+                                },
+                          icon: const Icon(Icons.open_in_new),
+                          label: const Text('Open Full Story'),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _MetadataRow(
-                    icon: Icons.public,
-                    label: 'Source',
-                    value: article.sourceName,
-                  ),
-                  _MetadataRow(
-                    icon: Icons.person_outline,
-                    label: 'Author',
-                    value: article.author ?? 'Unknown author',
-                  ),
-                  _MetadataRow(
-                    icon: Icons.event,
-                    label: 'Published',
-                    value: _formatDateTime(article.publishedAt),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    article.description ?? 'No description available.',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(height: 1.45),
-                  ),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: article.url.isEmpty
-                          ? null
-                          : () {
-                              _openArticle(context);
-                            },
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Read Full Article'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String? _cleanText(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+
+    final charsTextIndex = text.indexOf('[+');
+    if (charsTextIndex != -1 && text.endsWith('chars]')) {
+      return text.substring(0, charsTextIndex).trim();
+    }
+
+    return text;
   }
 
   Future<void> _openArticle(BuildContext context) async {
@@ -98,6 +150,43 @@ class ArticleDetailScreen extends StatelessWidget {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$year-$month-$day $hour:$minute';
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -142,46 +231,6 @@ class _ImagePlaceholder extends StatelessWidget {
           size: 56,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
-      ),
-    );
-  }
-}
-
-class _MetadataRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _MetadataRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: Theme.of(context).textTheme.bodyMedium,
-                children: <InlineSpan>[
-                  TextSpan(
-                    text: '$label: ',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  TextSpan(text: value),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

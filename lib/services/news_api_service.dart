@@ -81,6 +81,7 @@ class NewsApiService {
 
   Future<List<Article>> searchArticles(
     String query, {
+    String? countryName,
     int pageSize = 20,
   }) async {
     final trimmedQuery = query.trim();
@@ -88,11 +89,16 @@ class NewsApiService {
       return <Article>[];
     }
 
+    final trimmedCountry = countryName?.trim();
+    final searchText = trimmedCountry == null || trimmedCountry.isEmpty
+        ? trimmedQuery
+        : '$trimmedQuery $trimmedCountry';
+
     final apiKey = _apiKey;
     _ensureApiKey(apiKey);
 
     final uri = Uri.https(_baseUrl, '/v2/everything', <String, String>{
-      'q': trimmedQuery,
+      'q': searchText,
       'apiKey': apiKey,
       'pageSize': pageSize.toString(),
       'sortBy': 'publishedAt',
